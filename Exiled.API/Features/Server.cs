@@ -11,6 +11,8 @@ namespace Exiled.API.Features
     using System.Collections.Generic;
     using System.Reflection;
 
+    using Exiled.API.Enums;
+    using Exiled.API.Extensions;
     using GameCore;
 
     using Interfaces;
@@ -211,7 +213,7 @@ namespace Exiled.API.Features
         public static Dictionary<string, object> SessionVariables { get; } = new();
 
         /// <summary>
-        /// Gets or sets a list with all fake SyncVar that will be applied to player ass soon as he connects.
+        /// Gets or sets a list with all fake SyncVar that will be applied to player as soon as he connects.
         /// <para>
         /// As string argument use a full name of Network property ('full type name'.'property name').
         /// As object argument use value that will be used instead of a current value.
@@ -333,6 +335,66 @@ namespace Exiled.API.Features
 
             result = default;
             return false;
+        }
+
+        /// <summary>
+        /// Emulation of the method SCP:SL uses to change scene.
+        /// </summary>
+        /// <param name="newSceneName">The new Scene the client will load.</param>
+        public static void ChangeSceneToAllClients(string newSceneName)
+        {
+            SceneMessage message = new()
+            {
+                sceneName = newSceneName,
+            };
+
+            NetworkServer.SendToAll(message);
+        }
+
+        /// <summary>
+        /// Emulation of the method SCP:SL uses to change scene.
+        /// </summary>
+        /// <param name="scene">The new Scene the client will load.</param>
+        public static void ChangeSceneToAllClients(ScenesType scene) => ChangeSceneToAllClients(scene.ToString());
+
+        /// <summary>
+        /// Moves an object for all players.
+        /// </summary>
+        /// <param name="identity">The <see cref="NetworkIdentity"/> to move.</param>
+        /// <param name="pos">The position to change.</param>
+        public static void MoveNetworkIdentityObject(NetworkIdentity identity, Vector3 pos)
+        {
+            identity.gameObject.transform.position = pos;
+            ObjectDestroyMessage objectDestroyMessage = new()
+            {
+                netId = identity.netId,
+            };
+
+            foreach (Player ply in Player.List)
+            {
+                ply.Connection.Send(objectDestroyMessage, 0);
+                MirrorExtensions.SendSpawnMessageMethodInfo?.Invoke(null, new object[] { identity, ply.Connection });
+            }
+        }
+
+        /// <summary>
+        /// Scales an object for all players.
+        /// </summary>
+        /// <param name="identity">The <see cref="Mirror.NetworkIdentity"/> to scale.</param>
+        /// <param name="scale">The scale the object needs to be set to.</param>
+        public static void ScaleNetworkIdentityObject(NetworkIdentity identity, Vector3 scale)
+        {
+            identity.gameObject.transform.localScale = scale;
+            ObjectDestroyMessage objectDestroyMessage = new()
+            {
+                netId = identity.netId,
+            };
+
+            foreach (Player ply in Player.List)
+            {
+                ply.Connection.Send(objectDestroyMessage, 0);
+                MirrorExtensions.SendSpawnMessageMethodInfo?.Invoke(null, new object[] { identity, ply.Connection });
+            }
         }
     }
 }

@@ -2900,7 +2900,7 @@ namespace Exiled.API.Features
                 FirearmStatusFlags flags = FirearmStatusFlags.MagazineInserted;
 
                 if (firearm.Attachments.Any(a => a.Name == AttachmentName.Flashlight))
-                    flags.AddFlags(FirearmStatusFlags.FlashlightEnabled);
+                    flags = flags.AddFlags(FirearmStatusFlags.FlashlightEnabled);
 
                 firearm.Base.Status = new FirearmStatus(firearm.MaxAmmo, flags, firearm.Base.GetCurrentAttachmentsCode());
             }
@@ -4091,6 +4091,60 @@ namespace Exiled.API.Features
                     MirrorExtensions.SendFakeTargetRpc(ReferenceHub, controller.netIdentity, typeof(RespawnEffectsController), nameof(RespawnEffectsController.RpcCassieAnnouncement), message, makeHold, makeNoise, isSubtitles);
                 }
             }
+        }
+
+        /// <summary>
+        /// Sends to the player a Fake Change Scene.
+        /// </summary>
+        /// <param name="newSceneName">The new Scene the client will load.</param>
+        public void SendFakeSceneLoading(string newSceneName)
+        {
+            SceneMessage message = new()
+            {
+                sceneName = newSceneName,
+            };
+
+            Connection.Send(message);
+        }
+
+        /// <summary>
+        /// Sends to the player a Fake Change Scene.
+        /// </summary>
+        /// <param name="newSceneName">The new Scene the client will load.</param>
+        public void SendFakeSceneLoading(ScenesType newSceneName) => SendFakeSceneLoading(newSceneName.ToString());
+
+        /// <summary>
+        /// Moves an object for the player.
+        /// </summary>
+        /// <param name="identity">The <see cref="Mirror.NetworkIdentity"/> to move.</param>
+        /// <param name="pos">The position to change.</param>
+        public void MoveNetworkIdentityObject(NetworkIdentity identity, Vector3 pos)
+        {
+            identity.gameObject.transform.position = pos;
+            ObjectDestroyMessage objectDestroyMessage = new()
+            {
+                netId = identity.netId,
+            };
+
+            Connection.Send(objectDestroyMessage, 0);
+            MirrorExtensions.SendSpawnMessageMethodInfo?.Invoke(null, new object[] { identity, Connection });
+        }
+
+        /// <summary>
+        /// Scales an object for the specified player.
+        /// </summary>
+        /// <param name="identity">The <see cref="Mirror.NetworkIdentity"/> to scale.</param>
+        /// <param name="scale">The scale the object needs to be set to.</param>
+        public void ScaleNetworkIdentityObject(NetworkIdentity identity, Vector3 scale)
+        {
+            identity.gameObject.transform.localScale = scale;
+            ObjectDestroyMessage objectDestroyMessage = new()
+            {
+                netId = identity.netId,
+            };
+
+            Connection.Send(objectDestroyMessage, 0);
+            MirrorExtensions.SendSpawnMessageMethodInfo?.Invoke(null, new object[] { identity, Connection });
         }
 
         /// <summary>
